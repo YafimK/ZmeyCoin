@@ -22,12 +22,14 @@ func New() *Blockchain {
 	newBlockchain := Blockchain{}
 	newBlockchain.blocks = append(newBlockchain.blocks,
 		block.New("Genesis", []byte{}))
+	newBlockchain.blocksCount++
 	return &newBlockchain
 }
 
 func (blockchain *Blockchain) printBlockChain() {
 	fmt.Println("*** Blockchain ***")
-	for _, curBlock := range blockchain.blocks {
+	for index, curBlock := range blockchain.blocks {
+		fmt.Printf("%v block\n",index)
 		fmt.Println(curBlock)
 	}
 }
