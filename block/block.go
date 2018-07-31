@@ -1,4 +1,4 @@
-package ZmeyCoin
+package block
 
 import (
 	"strconv"
@@ -14,11 +14,11 @@ type Block struct {
 	Hash []byte
 }
 
-func (b* Block) ComputeHash() {
-	timestamp := []byte(strconv.FormatInt(b.Timestamp, 10))
-	headers := bytes.Join([][]byte{b.PrevBlockHash, b.Data, timestamp}, []byte{})
+func (block *Block) ComputeHash() {
+	timestamp := []byte(strconv.FormatInt(block.Timestamp, 10))
+	headers := bytes.Join([][]byte{block.PrevBlockHash, block.Data, timestamp}, []byte{})
 	hash := sha256.Sum256(headers)
-	b.Hash = hash[:]
+	block.Hash = hash[:]
 }
 
 func New(data string, prevBlockHash []byte) *Block {
