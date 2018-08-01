@@ -3,7 +3,7 @@
 package transaction
 
 // The default reward for our loyal miner
-//TODO: add some algorithem to change this as time passes by :D
+//TODO: add some algorithm to change this as time passes by :D
 const minerReward = 50
 
 //Each transaction is constructed of several inputs and outputs
