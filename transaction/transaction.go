@@ -2,7 +2,12 @@
 
 package transaction
 
-import "fmt"
+import (
+	"fmt"
+	"bytes"
+	"encoding/gob"
+	"log"
+)
 
 // The default reward for our loyal miner
 //TODO: add some algorithm to change this as time passes by :D
@@ -23,6 +28,16 @@ func New(inputs []TXInput, outputs []TXOutput) *Transaction{
 
 func (tx *Transaction) String () string{
 	return fmt.Sprintf("Transaction: \n %v inputs:\n %v \n %v outputs: %v", tx.inCounter,  tx.outCounter, tx.in, tx.out)
+}
+
+func (tx *Transaction) ToBytes () []byte {
+	var container bytes.Buffer
+	enc := gob.NewEncoder(&container) // Will write to network.
+	err := enc.Encode(tx)
+	if err != nil {
+		log.Fatal("encode error:", err)
+	}
+	return container.Bytes()
 }
 
 type TXInput struct {
@@ -56,9 +71,9 @@ func (txOutput *TXOutput) String () string{
 
 //Simple coinbase (first block transaction) generation transaction generator with no regard to script
 func NewCoinbaseTransaction() *Transaction {
-	txin := TXInput{[]byte{}, -1, []byte(""),len("")}
-	txout := TXOutput{minerReward, []byte(""), len("")}
-	transaction := New([]TXInput{txin}, []TXOutput{txout})
+	txIn := TXInput{[]byte{}, -1, []byte(""),len("")}
+	txOut := TXOutput{minerReward, []byte(""), len("")}
+	transaction := New([]TXInput{txIn}, []TXOutput{txOut})
 
 	return transaction
 }

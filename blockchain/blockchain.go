@@ -3,6 +3,7 @@ package blockchain
 import (
 	"ZmeyCoin/block"
 	"fmt"
+	"ZmeyCoin/transaction"
 )
 
 type Blockchain struct {
@@ -21,7 +22,7 @@ func (blockchain *Blockchain) AddBlock(data string) {
 func New() *Blockchain {
 	newBlockchain := Blockchain{}
 	newBlockchain.blocks = append(newBlockchain.blocks,
-		block.New("Genesis", []byte{}))
+		block.New([]*transaction.Transaction{transaction.NewCoinbaseTransaction()}, []byte{}))
 	newBlockchain.blocksCount++
 	return &newBlockchain
 }

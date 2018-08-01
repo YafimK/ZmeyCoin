@@ -18,9 +18,21 @@ type Block struct {
 
 func (block *Block) ComputeHash() {
 	timestamp := []byte(strconv.FormatInt(block.Timestamp, 10))
-	headers := bytes.Join([][]byte{block.PrevBlockHash, block.Data, timestamp}, []byte{})
+	headers := bytes.Join([][]byte{block.PrevBlockHash, block.ComputeTransactionsHash(), timestamp}, []byte{})
 	hash := sha256.Sum256(headers)
 	block.Hash = hash[:]
+}
+
+func (block *Block) ComputeTransactionsHash() []byte {
+	var transactionHashes [][]byte
+	var transactionHash [32]byte
+
+	for _, tx := range block.Transactions {
+		transactionHashes = append(transactionHashes, tx.ToBytes())
+	}
+	transactionHash = sha256.Sum256(bytes.Join(transactionHashes, []byte{}))
+
+	return transactionHash[:]
 }
 
 func New(transactions []*transaction.Transaction, prevBlockHash []byte) *Block {
