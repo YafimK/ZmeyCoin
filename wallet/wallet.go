@@ -4,7 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-			"log"
+	"log"
 	"crypto/sha256"
 	"github.com/itchyny/base58-go"
 	"golang.org/x/crypto/ripemd160"
@@ -12,18 +12,19 @@ import (
 
 //basic wallet versions
 const defaultWalletVersion = byte(0x01)
-//default wallet file
-const walletFile = "wallet.dat"
+
+
+
+//Default wallet address checksum length
 const addressChecksumLen = 4
 
-
 type Wallet struct {
-	Version byte
+	Version    byte
 	PrivateKey ecdsa.PrivateKey
 	PublicKey  []byte
 }
 
-func New() *Wallet {
+func NewWallet() *Wallet {
 	private, public := newKeyPair()
 	wallet := Wallet{defaultWalletVersion, private, public}
 
@@ -32,43 +33,41 @@ func New() *Wallet {
 
 func newKeyPair() (ecdsa.PrivateKey, []byte) {
 	curve := elliptic.P256()
-	private, err := ecdsa.GenerateKey(curve, rand.Reader)
+	privateKey, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
-		log.Fatalf("failed generating private key for the wallet: %v\n", err)
+		log.Fatalf("failed generating privateKey key for the wallet: %v\n", err)
 	}
-	pubKey := append(private.PublicKey.X.Bytes(), private.PublicKey.Y.Bytes()...)
+	publicKey := append(privateKey.PublicKey.X.Bytes(), privateKey.PublicKey.Y.Bytes()...)
 
-	return *private, pubKey
+	return *privateKey, publicKey
 }
 
-func (w *Wallet) GetAddress() []byte {
-	encoding := base58.BitcoinEncoding // or RippleEncoding or BitcoinEncoding
+//Creates a new public wallet address
+func (w *Wallet) GetNewWalletAddress() []byte {
+	base58Encoder := base58.BitcoinEncoding
 	pubKeyHash := HashPubKey(w.PublicKey)
 
 	versionedPayload := append([]byte{defaultWalletVersion}, pubKeyHash...)
 	checksum := checksum(versionedPayload)
 
 	fullPayload := append(versionedPayload, checksum...)
-	address, err := encoding.Encode(fullPayload)
-	if err != nil{
-		log.Fatalf("Error encoding the new address: %v\n",err)
+	address, err := base58Encoder.Encode(fullPayload)
+	if err != nil {
+		log.Fatalf("Error base58Encoder the new address: %v\n", err)
 	}
 	return address
 }
 
-
-
 func HashPubKey(pubKey []byte) []byte {
-	publicSHA256 := sha256.Sum256(pubKey)
-
-	RIPEMD160Hasher := ripemd160.New()
-	_, err := RIPEMD160Hasher.Write(publicSHA256[:])
-	if err != nil{
-		log.Fatalf("Error encoding the new pubkey: %v\n",err)
+	sha256PublicKeyEncoded := sha256.Sum256(pubKey)
+	RIPEMD160encoder := ripemd160.New()
+	_, err := RIPEMD160encoder.Write(sha256PublicKeyEncoded[:])
+	if err != nil {
+		log.Fatalf("Error encoding the new pubkey: %v\n", err)
 	}
-	publicRIPEMD160 := RIPEMD160Hasher.Sum(nil)
+	hashedPublicKey := RIPEMD160encoder.Sum(nil)
 
-	return publicRIPEMD160
+	return hashedPublicKey
 }
 
 func checksum(payload []byte) []byte {

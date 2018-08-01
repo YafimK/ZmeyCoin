@@ -1,7 +1,7 @@
 package main
 
-import "ZmeyCoin/cli"
+import "ZmeyCoin/client"
 
 func main() {
-	cli.RootCmd.Execute()
+	client.RootCmd.Execute()
 }

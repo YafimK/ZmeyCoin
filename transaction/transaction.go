@@ -79,3 +79,9 @@ func NewCoinbaseTransaction() *Transaction {
 }
 
 //TODO: create toString methods..
+//We will use the most common bitcoin script when used to deliver coins to public key hash (P2PKH)
+//Pubkey script: OP_DUP OP_HASH160 <PubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
+//Signature script: <sig> <pubkey>
+func (txInput *TXInput) LockInput() {
+
+}
