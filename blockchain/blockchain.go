@@ -8,14 +8,21 @@ import (
 
 type Blockchain struct {
 	blocks []*block.Block
+	transactions []*transaction.Transaction //Transaction pending to be "block'ed"
 	blocksCount int
 }
 
-func (blockchain *Blockchain) AddBlock(data string) {
+func (blockchain *Blockchain) AddBlock(transactions []*transaction.Transaction) {
 	prevBlock := blockchain.blocks[blockchain.blocksCount - 1]
-	newBlock := block.New(data, prevBlock.Hash)
+	newBlock := block.New(transactions, prevBlock.Hash)
 	blockchain.blocks = append(blockchain.blocks, newBlock)
 	blockchain.blocksCount++
+}
+
+func (blockchain *Blockchain) MineBlock() {
+	//TODO: gather all possible transactions and create a new block
+
+	blockchain.AddBlock([]*transaction.Transaction{})
 }
 
 //we need to init the blockchain with genesis block
@@ -33,4 +40,8 @@ func (blockchain *Blockchain) printBlockChain() {
 		fmt.Printf("%v block\n",index)
 		fmt.Println(curBlock)
 	}
+}
+
+func (blockchain *Blockchain) addTransaction() {
+
 }
