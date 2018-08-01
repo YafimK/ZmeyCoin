@@ -6,11 +6,12 @@ import (
 	"crypto/sha256"
 	"time"
 	"fmt"
+	"ZmeyCoin/transaction"
 )
 
 type Block struct {
 	Timestamp int64
-	Data []byte
+	Transactions []*transaction.Transaction
 	PrevBlockHash []byte
 	Hash []byte
 }
@@ -22,8 +23,8 @@ func (block *Block) ComputeHash() {
 	block.Hash = hash[:]
 }
 
-func New(data string, prevBlockHash []byte) *Block {
-	newBlock := &Block{time.Now().Unix(), []byte(data), prevBlockHash, []byte{}}
+func New(transactions []*transaction.Transaction, prevBlockHash []byte) *Block {
+	newBlock := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}}
 	newBlock.ComputeHash()
 	return newBlock
 }
@@ -33,7 +34,7 @@ func (block *Block) String() string {
 	buffer.WriteString(fmt.Sprintf("Block creation timestamp: %x\n",  time.Unix(block.Timestamp, 0)))
 	buffer.WriteString(fmt.Sprintf("Hash: %x\n", block.Hash))
 	buffer.WriteString(fmt.Sprintf("Prev. hash: %x\n", block.PrevBlockHash))
-	buffer.WriteString(fmt.Sprintf("Data: %s\n", block.Data))
+	buffer.WriteString(fmt.Sprintf("Data: %v\n", block.Transactions))
 
 	return fmt.Sprintf("%v", buffer.String())
 }
