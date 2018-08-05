@@ -17,6 +17,6 @@ func TestBlockchain_AddBlock(test *testing.T) {
 
 	if !bytes.Equal(blockchain.blocks[2].Data, []byte("second block")) {
 		test.Errorf("The data in the second block doesn't match the expected data that should be in it")
-		blockchain.printBlockChain()
+		blockchain.PrintBlockChain()
 	}
 }

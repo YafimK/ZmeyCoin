@@ -22,19 +22,19 @@ const minerReward = 50
 
 //Each transaction is constructed of several inputs and outputs
 type Transaction struct {
-	inCounter          int
-	outCounter         int
-	transactionInputs  []TransactionInput
-	transactionOutputs []TransactionOutput
+	InCounter          int
+	OutCounter         int
+	TransactionInputs  []TransactionInput
+	TransactionOutputs []TransactionOutput
 }
 
 func New(inputs []TransactionInput, outputs []TransactionOutput) *Transaction {
 	//transaction.SetID()
-	return &Transaction{inCounter: len(inputs), outCounter: len(outputs), transactionInputs: inputs, transactionOutputs: outputs}
+	return &Transaction{InCounter: len(inputs), OutCounter: len(outputs), TransactionInputs: inputs, TransactionOutputs: outputs}
 }
 
 func (transaction *Transaction) String() string {
-	return fmt.Sprintf("Transaction: \n %v inputs:\n %v \n %v outputs: %v", transaction.inCounter, transaction.outCounter, transaction.transactionInputs, transaction.transactionOutputs)
+	return fmt.Sprintf("Transaction: \n %v inputs:\n %v \n %v outputs: %v", transaction.InCounter, transaction.OutCounter, transaction.TransactionInputs, transaction.TransactionOutputs)
 }
 
 func (transaction *Transaction) ToBytes() []byte {
@@ -57,16 +57,16 @@ func NewCoinbaseTransaction() *Transaction {
 }
 
 func (transaction *Transaction) IsCoinbase() bool {
-	return transaction.inCounter == 1 && transaction.transactionInputs[0].prevTxOutIndex == -1
+	return transaction.InCounter == 1 && transaction.TransactionInputs[0].PrevTxOutIndex == -1
 }
 
 func (transaction *Transaction) GetMinimisedTransaction() *Transaction{
 
 	var inputs []TransactionInput
-	for _, input := range transaction.transactionInputs {
-		inputs = append(inputs, TransactionInput{input.prevTransactionHash, input.prevTxOutIndex, nil,nil})
+	for _, input := range transaction.TransactionInputs {
+		inputs = append(inputs, TransactionInput{input.PrevTransactionHash, input.PrevTxOutIndex, nil,nil})
 	}
-	outputs := append(make([]TransactionOutput, 0, len(transaction.transactionOutputs)), transaction.transactionOutputs...)
+	outputs := append(make([]TransactionOutput, 0, len(transaction.TransactionOutputs)), transaction.TransactionOutputs...)
 
 	return New(inputs, outputs)
 }
@@ -82,11 +82,11 @@ func (transaction *Transaction) SignTransaction(privateKey ecdsa.PrivateKey, pre
 
 	minimizedTransaction := transaction.GetMinimisedTransaction()
 
-	for inID, transactionInput := range minimizedTransaction.transactionInputs {
-		previousTransaction := previousTransactions[hex.EncodeToString(transactionInput.prevTransactionHash)]
-		minimizedTransaction.transactionInputs[inID].SenderPublicKeyHash = previousTransaction.transactionOutputs[transactionInput.prevTxOutIndex].RecipientPubKeyHash
+	for inID, transactionInput := range minimizedTransaction.TransactionInputs {
+		previousTransaction := previousTransactions[hex.EncodeToString(transactionInput.PrevTransactionHash)]
+		minimizedTransaction.TransactionInputs[inID].SenderPublicKeyHash = previousTransaction.TransactionOutputs[transactionInput.PrevTxOutIndex].RecipientPubKeyHash
 		minimizedTransactionId := minimizedTransaction.GetHash()
-		minimizedTransaction.transactionInputs[inID].SenderPublicKeyHash = nil
+		minimizedTransaction.TransactionInputs[inID].SenderPublicKeyHash = nil
 
 		r, s, err := ecdsa.Sign(rand.Reader, &privateKey, minimizedTransactionId)
 		if err !=nil {
@@ -94,7 +94,7 @@ func (transaction *Transaction) SignTransaction(privateKey ecdsa.PrivateKey, pre
 		}
 		signature := append(r.Bytes(), s.Bytes()...)
 
-		transaction.transactionInputs[inID].Signature = signature
+		transaction.TransactionInputs[inID].Signature = signature
 	}
 
 }
@@ -103,12 +103,12 @@ func (transaction *Transaction) Verify(prevTXs map[string]Transaction) bool {
 	minimizedTransaction := transaction.GetMinimisedTransaction()
 	curve := elliptic.P256()
 
-	for inID, vin := range transaction.transactionInputs {
-		prevTx := prevTXs[hex.EncodeToString(vin.prevTransactionHash)]
-		minimizedTransaction.transactionInputs[inID].Signature = nil
-		minimizedTransaction.transactionInputs[inID].SenderPublicKeyHash = prevTx.transactionOutputs[vin.prevTxOutIndex].RecipientPubKeyHash
+	for inID, vin := range transaction.TransactionInputs {
+		prevTx := prevTXs[hex.EncodeToString(vin.PrevTransactionHash)]
+		minimizedTransaction.TransactionInputs[inID].Signature = nil
+		minimizedTransaction.TransactionInputs[inID].SenderPublicKeyHash = prevTx.TransactionOutputs[vin.PrevTxOutIndex].RecipientPubKeyHash
 		minimizedTransactionHash := minimizedTransaction.GetHash()
-		minimizedTransaction.transactionInputs[inID].SenderPublicKeyHash = nil
+		minimizedTransaction.TransactionInputs[inID].SenderPublicKeyHash = nil
 
 		r := big.Int{}
 		s := big.Int{}
@@ -122,7 +122,7 @@ func (transaction *Transaction) Verify(prevTXs map[string]Transaction) bool {
 		x.SetBytes(vin.SenderPublicKeyHash[:(keyLen / 2)])
 		y.SetBytes(vin.SenderPublicKeyHash[(keyLen / 2):])
 
-		rawPubKey := ecdsa.PublicKey{curve, &x, &y}
+		rawPubKey := ecdsa.PublicKey{Curve: curve, X: &x, Y: &y}
 		if ecdsa.Verify(&rawPubKey, minimizedTransactionHash, &r, &s) == false {
 			return false
 		}

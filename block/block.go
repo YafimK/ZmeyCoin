@@ -7,6 +7,8 @@ import (
 	"time"
 	"fmt"
 	"ZmeyCoin/transaction"
+	"encoding/gob"
+	"log"
 )
 
 type Block struct {
@@ -36,7 +38,7 @@ func (block *Block) ComputeTransactionsHash() []byte {
 }
 
 func New(transactions []*transaction.Transaction, prevBlockHash []byte) *Block {
-	newBlock := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}}
+	newBlock := &Block{Timestamp: time.Now().Unix(), Transactions: transactions, PrevBlockHash: prevBlockHash, Hash: []byte{}}
 	newBlock.ComputeHash()
 	return newBlock
 }
@@ -49,4 +51,27 @@ func (block *Block) String() string {
 	buffer.WriteString(fmt.Sprintf("Data: %v\n", block.Transactions))
 
 	return fmt.Sprintf("%v", buffer.String())
+}
+
+// DeserializeBlock deserialize a block
+func DeserializeBlock(serializedBlock []byte) *Block {
+	var block Block
+
+	decoder := gob.NewDecoder(bytes.NewReader(serializedBlock))
+	err := decoder.Decode(&block)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return &block
+}
+
+func (block *Block) Serialize() []byte {
+	var result bytes.Buffer
+	encoder := gob.NewEncoder(&result)
+	err := encoder.Encode(block)
+	if err != nil {
+		log.Panic(err)
+	}
+	return result.Bytes()
 }
