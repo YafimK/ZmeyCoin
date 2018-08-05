@@ -54,17 +54,12 @@ func (blockchain *Blockchain) AddTransaction() {
 func (blockchain *Blockchain) FindTransaction(targetTransactionHash []byte) (transaction.Transaction, error){
 	bci := blockchain.Iterator()
 	
-	for {
-		currentBlock := bci.Next()
-	
+	for currentBlock := bci.Next(); currentBlock != nil; {
+
 		for _, tx := range currentBlock.Transactions {
 			if bytes.Compare(tx.GetHash(), targetTransactionHash) == 0 {
 				return *tx, nil
 			}
-		}
-	
-		if len(currentBlock.PrevBlockHash) == 0 {
-			break
 		}
 	}
 
