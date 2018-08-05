@@ -24,10 +24,10 @@ func (blockchain *Blockchain) AddBlock(transactions []*transaction.Transaction) 
 	blockchain.blocksCount++
 }
 
-func (blockchain *Blockchain) MineBlock() {
+func (blockchain *Blockchain) MineBlock(transactions []*transaction.Transaction) {
 	//TODO: gather all possible transactions and create a new block
 
-	blockchain.AddBlock([]*transaction.Transaction{})
+	blockchain.AddBlock(transactions)
 }
 
 //we need to init the blockchain with genesis block
@@ -72,7 +72,7 @@ func (blockchain *Blockchain) VerifyTransaction(targetTransaction *transaction.T
 	for _, vin := range targetTransaction.TransactionInputs {
 		prevTX, err := blockchain.FindTransaction(vin.PrevTransactionHash)
 		if err != nil {
-			
+			log.Fatalf("failed finding suitable transaction: %v\n", err)
 		}
 		prevTXs[hex.EncodeToString(prevTX.GetHash())] = prevTX
 	}
@@ -83,7 +83,6 @@ func (blockchain *Blockchain) VerifyTransaction(targetTransaction *transaction.T
 func (blockchain *Blockchain) Iterator()  *BlockchainIterator{
 	return NewBlockchainIterator(blockchain)
 }
-
 
 func (blockchain *Blockchain) SignTransaction(tx *transaction.Transaction, privKey ecdsa.PrivateKey) {
 	previousTransactions := make(map[string]transaction.Transaction)
@@ -98,3 +97,4 @@ func (blockchain *Blockchain) SignTransaction(tx *transaction.Transaction, privK
 
 	tx.SignTransaction(privKey, previousTransactions)
 }
+
