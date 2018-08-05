@@ -7,7 +7,13 @@ import (
 	"bytes"
 	"encoding/gob"
 	"log"
+	"crypto/ecdsa"
+	"encoding/hex"
+	"crypto/rand"
 	"ZmeyCoin/util"
+	"crypto/sha256"
+	"crypto/elliptic"
+	"math/big"
 )
 
 // The default reward for our loyal miner
@@ -16,95 +22,111 @@ const minerReward = 50
 
 //Each transaction is constructed of several inputs and outputs
 type Transaction struct {
-	inCounter  int
-	outCounter int
-	in         []TXInput
-	out        []TXOutput
+	inCounter          int
+	outCounter         int
+	transactionInputs  []TransactionInput
+	transactionOutputs []TransactionOutput
 }
 
-func New(inputs []TXInput, outputs []TXOutput) *Transaction {
+func New(inputs []TransactionInput, outputs []TransactionOutput) *Transaction {
 	//transaction.SetID()
-	return &Transaction{len(inputs), len(outputs), inputs, outputs}
+	return &Transaction{inCounter: len(inputs), outCounter: len(outputs), transactionInputs: inputs, transactionOutputs: outputs}
 }
 
-func (tx *Transaction) String() string {
-	return fmt.Sprintf("Transaction: \n %v inputs:\n %v \n %v outputs: %v", tx.inCounter, tx.outCounter, tx.in, tx.out)
+func (transaction *Transaction) String() string {
+	return fmt.Sprintf("Transaction: \n %v inputs:\n %v \n %v outputs: %v", transaction.inCounter, transaction.outCounter, transaction.transactionInputs, transaction.transactionOutputs)
 }
 
-func (tx *Transaction) ToBytes() []byte {
+func (transaction *Transaction) ToBytes() []byte {
 	var container bytes.Buffer
 	enc := gob.NewEncoder(&container) // Will write to network.
-	err := enc.Encode(tx)
+	err := enc.Encode(transaction)
 	if err != nil {
 		log.Fatal("encode error:", err)
 	}
 	return container.Bytes()
 }
 
-type TXInput struct {
-	prevTransactionHash []byte
-	prevTxOutIndex      int
-	//txInScript          []byte
-	//txInScriptLength    int
-	SenderPublicKeyHash []byte
-	Signature           []byte
-}
-
-func (txInput *TXInput) String() string {
-	//return fmt.Sprintf("Input: \n " +
-	//	"prevTransactionHash: %v \n" +
-	//	"prevTxOutIndex: %v \n " +
-	//	"txInScript: %v \n " +
-	//	"txInScript: %v\n", txInput.prevTransactionHash,  txInput.prevTxOutIndex, txInput.txInScript, txInput.txInScriptLength)
-	return fmt.Sprintf("Input: \n "+
-		"prevTransactionHash: %v \n"+
-		"prevTxOutIndex: %v \n "+
-		"SenderPublicKeyHash: %v \n "+
-		"Signature: %v\n", txInput.prevTransactionHash, txInput.prevTxOutIndex, txInput.SenderPublicKeyHash, txInput.Signature)
-}
-
-type TXOutput struct {
-	value int
-	//txOutScript       []byte
-	//txOutScriptLength int
-	pubKeyHashpubKeyHash []byte
-}
-
-func (txOutput *TXOutput) String() string {
-	//return fmt.Sprintf("Output: \n " +
-	//	"value: %v \n" +
-	//	"txOutScript: %v \n " +
-	//	"txOutScriptLength: %v \n ",
-	//	txOutput.value,  txOutput.txOutScript, txOutput.txOutScriptLength)
-	return fmt.Sprintf("Output: \n "+
-		"value: %v \n"+
-		"RecipientPublicKeyHash: %v \n ", txOutput.value, txOutput.pubKeyHashpubKeyHash)
-}
-
 //Simple coinbase (first block transaction) generation transaction generator with no regard to script
 func NewCoinbaseTransaction() *Transaction {
-	txIn := TXInput{[]byte{}, -1, []byte{}, []byte{}}
-	txOut := TXOutput{minerReward, []byte("")}
-	transaction := New([]TXInput{txIn}, []TXOutput{txOut})
+	txIn := TransactionInput{[]byte{}, -1, []byte{}, []byte{}}
+	txOut := TransactionOutput{minerReward, []byte("")}
+	transaction := New([]TransactionInput{txIn}, []TransactionOutput{txOut})
 
 	return transaction
 }
 
-func (txInput *TXInput) UsesKey(pubKeyHash []byte) bool {
-	lockingHash := util.HashPubKey(txInput.SenderPublicKeyHash)
-
-	return bytes.Compare(lockingHash, pubKeyHash) == 0
+func (transaction *Transaction) IsCoinbase() bool {
+	return transaction.inCounter == 1 && transaction.transactionInputs[0].prevTxOutIndex == -1
 }
 
-func (txOutput *TXOutput) Lock(address []byte) {
-	pubKeyHash, err := util.EncodeInBase58(address)
-	if err != nil {
-		log.Fatalf("Error during base58 Encoding the new address: %v\n", err)
+func (transaction *Transaction) GetMinimisedTransaction() *Transaction{
+
+	var inputs []TransactionInput
+	for _, input := range transaction.transactionInputs {
+		inputs = append(inputs, TransactionInput{input.prevTransactionHash, input.prevTxOutIndex, nil,nil})
 	}
-	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
-	txOutput.pubKeyHashpubKeyHash = pubKeyHash
+	outputs := append(make([]TransactionOutput, 0, len(transaction.transactionOutputs)), transaction.transactionOutputs...)
+
+	return New(inputs, outputs)
 }
 
-func (txOutput *TXOutput) IsLockedWithKey(pubKeyHash []byte) bool {
-	return bytes.Compare(txOutput.pubKeyHashpubKeyHash, pubKeyHash) == 0
+func (transaction *Transaction) GetHash() []byte{
+	return sha256.Sum256(util.SerializeObject(transaction))[:]
+}
+
+func (transaction *Transaction) SignTransaction(privateKey ecdsa.PrivateKey, previousTransactions map[string]Transaction) {
+	if transaction.IsCoinbase() {
+		return
+	}
+
+	minimizedTransaction := transaction.GetMinimisedTransaction()
+
+	for inID, transactionInput := range minimizedTransaction.transactionInputs {
+		previousTransaction := previousTransactions[hex.EncodeToString(transactionInput.prevTransactionHash)]
+		minimizedTransaction.transactionInputs[inID].SenderPublicKeyHash = previousTransaction.transactionOutputs[transactionInput.prevTxOutIndex].RecipientPubKeyHash
+		minimizedTransactionId := minimizedTransaction.GetHash()
+		minimizedTransaction.transactionInputs[inID].SenderPublicKeyHash = nil
+
+		r, s, err := ecdsa.Sign(rand.Reader, &privateKey, minimizedTransactionId)
+		if err !=nil {
+			log.Panicf("Error during signning transaction: %v \n", err)
+		}
+		signature := append(r.Bytes(), s.Bytes()...)
+
+		transaction.transactionInputs[inID].Signature = signature
+	}
+
+}
+
+func (transaction *Transaction) Verify(prevTXs map[string]Transaction) bool {
+	minimizedTransaction := transaction.GetMinimisedTransaction()
+	curve := elliptic.P256()
+
+	for inID, vin := range transaction.transactionInputs {
+		prevTx := prevTXs[hex.EncodeToString(vin.prevTransactionHash)]
+		minimizedTransaction.transactionInputs[inID].Signature = nil
+		minimizedTransaction.transactionInputs[inID].SenderPublicKeyHash = prevTx.transactionOutputs[vin.prevTxOutIndex].RecipientPubKeyHash
+		minimizedTransactionHash := minimizedTransaction.GetHash()
+		minimizedTransaction.transactionInputs[inID].SenderPublicKeyHash = nil
+
+		r := big.Int{}
+		s := big.Int{}
+		sigLen := len(vin.Signature)
+		r.SetBytes(vin.Signature[:(sigLen / 2)])
+		s.SetBytes(vin.Signature[(sigLen / 2):])
+
+		x := big.Int{}
+		y := big.Int{}
+		keyLen := len(vin.SenderPublicKeyHash)
+		x.SetBytes(vin.SenderPublicKeyHash[:(keyLen / 2)])
+		y.SetBytes(vin.SenderPublicKeyHash[(keyLen / 2):])
+
+		rawPubKey := ecdsa.PublicKey{curve, &x, &y}
+		if ecdsa.Verify(&rawPubKey, minimizedTransactionHash, &r, &s) == false {
+			return false
+		}
+	}
+
+	return true
 }
