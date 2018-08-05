@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"log"
+	"ZmeyCoin/util"
 )
 
 // The default reward for our loyal miner
@@ -21,16 +22,16 @@ type Transaction struct {
 	out        []TXOutput
 }
 
-func New(inputs []TXInput, outputs []TXOutput) *Transaction{
+func New(inputs []TXInput, outputs []TXOutput) *Transaction {
 	//transaction.SetID()
 	return &Transaction{len(inputs), len(outputs), inputs, outputs}
 }
 
-func (tx *Transaction) String () string{
-	return fmt.Sprintf("Transaction: \n %v inputs:\n %v \n %v outputs: %v", tx.inCounter,  tx.outCounter, tx.in, tx.out)
+func (tx *Transaction) String() string {
+	return fmt.Sprintf("Transaction: \n %v inputs:\n %v \n %v outputs: %v", tx.inCounter, tx.outCounter, tx.in, tx.out)
 }
 
-func (tx *Transaction) ToBytes () []byte {
+func (tx *Transaction) ToBytes() []byte {
 	var container bytes.Buffer
 	enc := gob.NewEncoder(&container) // Will write to network.
 	err := enc.Encode(tx)
@@ -43,45 +44,67 @@ func (tx *Transaction) ToBytes () []byte {
 type TXInput struct {
 	prevTransactionHash []byte
 	prevTxOutIndex      int
-	txInScript          []byte
-	txInScriptLength    int
+	//txInScript          []byte
+	//txInScriptLength    int
+	SenderPublicKeyHash []byte
+	Signature           []byte
 }
 
-func (txInput *TXInput) String () string{
-	return fmt.Sprintf("Input: \n " +
-		"prevTransactionHash: %v \n" +
-		"prevTxOutIndex: %v \n " +
-		"txInScript: %v \n " +
-		"txInScript: %v\n", txInput.prevTransactionHash,  txInput.prevTxOutIndex, txInput.txInScript, txInput.txInScriptLength)
+func (txInput *TXInput) String() string {
+	//return fmt.Sprintf("Input: \n " +
+	//	"prevTransactionHash: %v \n" +
+	//	"prevTxOutIndex: %v \n " +
+	//	"txInScript: %v \n " +
+	//	"txInScript: %v\n", txInput.prevTransactionHash,  txInput.prevTxOutIndex, txInput.txInScript, txInput.txInScriptLength)
+	return fmt.Sprintf("Input: \n "+
+		"prevTransactionHash: %v \n"+
+		"prevTxOutIndex: %v \n "+
+		"SenderPublicKeyHash: %v \n "+
+		"Signature: %v\n", txInput.prevTransactionHash, txInput.prevTxOutIndex, txInput.SenderPublicKeyHash, txInput.Signature)
 }
 
 type TXOutput struct {
-	value             int
-	txOutScript       []byte
-	txOutScriptLength int
+	value int
+	//txOutScript       []byte
+	//txOutScriptLength int
+	pubKeyHashpubKeyHash []byte
 }
 
-func (txOutput *TXOutput) String () string{
-	return fmt.Sprintf("Output: \n " +
-		"value: %v \n" +
-		"txOutScript: %v \n " +
-		"txOutScriptLength: %v \n ",
-		txOutput.value,  txOutput.txOutScript, txOutput.txOutScriptLength)
+func (txOutput *TXOutput) String() string {
+	//return fmt.Sprintf("Output: \n " +
+	//	"value: %v \n" +
+	//	"txOutScript: %v \n " +
+	//	"txOutScriptLength: %v \n ",
+	//	txOutput.value,  txOutput.txOutScript, txOutput.txOutScriptLength)
+	return fmt.Sprintf("Output: \n "+
+		"value: %v \n"+
+		"RecipientPublicKeyHash: %v \n ", txOutput.value, txOutput.pubKeyHashpubKeyHash)
 }
 
 //Simple coinbase (first block transaction) generation transaction generator with no regard to script
 func NewCoinbaseTransaction() *Transaction {
-	txIn := TXInput{[]byte{}, -1, []byte(""),len("")}
-	txOut := TXOutput{minerReward, []byte(""), len("")}
+	txIn := TXInput{[]byte{}, -1, []byte{}, []byte{}}
+	txOut := TXOutput{minerReward, []byte("")}
 	transaction := New([]TXInput{txIn}, []TXOutput{txOut})
 
 	return transaction
 }
 
-//TODO: create toString methods..
-//We will use the most common bitcoin script when used to deliver coins to public key hash (P2PKH)
-//Pubkey script: OP_DUP OP_HASH160 <PubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
-//Signature script: <sig> <pubkey>
-func (txInput *TXInput) LockInput() {
+func (txInput *TXInput) UsesKey(pubKeyHash []byte) bool {
+	lockingHash := util.HashPubKey(txInput.SenderPublicKeyHash)
 
+	return bytes.Compare(lockingHash, pubKeyHash) == 0
+}
+
+func (txOutput *TXOutput) Lock(address []byte) {
+	pubKeyHash, err := util.EncodeInBase58(address)
+	if err != nil {
+		log.Fatalf("Error during base58 Encoding the new address: %v\n", err)
+	}
+	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
+	txOutput.pubKeyHashpubKeyHash = pubKeyHash
+}
+
+func (txOutput *TXOutput) IsLockedWithKey(pubKeyHash []byte) bool {
+	return bytes.Compare(txOutput.pubKeyHashpubKeyHash, pubKeyHash) == 0
 }

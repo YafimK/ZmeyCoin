@@ -6,8 +6,8 @@ import (
 	"crypto/rand"
 	"log"
 	"crypto/sha256"
-	"github.com/itchyny/base58-go"
-	"golang.org/x/crypto/ripemd160"
+		"golang.org/x/crypto/ripemd160"
+	"ZmeyCoin/util"
 )
 
 //basic wallet versions
@@ -44,14 +44,13 @@ func newKeyPair() (ecdsa.PrivateKey, []byte) {
 
 //Creates a new public wallet address
 func (w *Wallet) GetNewWalletAddress() []byte {
-	base58Encoder := base58.BitcoinEncoding
 	pubKeyHash := HashPubKey(w.PublicKey)
 
 	versionedPayload := append([]byte{defaultWalletVersion}, pubKeyHash...)
 	checksum := checksum(versionedPayload)
 
 	fullPayload := append(versionedPayload, checksum...)
-	address, err := base58Encoder.Encode(fullPayload)
+	address, err := util.EncodeInBase58(fullPayload)
 	if err != nil {
 		log.Fatalf("Error base58Encoder the new address: %v\n", err)
 	}
