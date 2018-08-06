@@ -9,6 +9,7 @@ import (
 	"ZmeyCoin/transaction"
 	"encoding/gob"
 	"log"
+	"ZmeyCoin/MerkleTree"
 )
 
 type Block struct {
@@ -27,14 +28,15 @@ func (block *Block) ComputeHash() {
 
 func (block *Block) ComputeTransactionsHash() []byte {
 	var transactionHashes [][]byte
-	var transactionHash [32]byte
+	//var transactionHash [32]byte
 
 	for _, tx := range block.Transactions {
 		transactionHashes = append(transactionHashes, tx.ToBytes())
 	}
-	transactionHash = sha256.Sum256(bytes.Join(transactionHashes, []byte{}))
 
-	return transactionHash[:]
+	merkleTree := MerkleTree.NewMerkleTree(&transactionHashes)
+
+	return *merkleTree.Root.Data
 }
 
 func New(transactions []*transaction.Transaction, prevBlockHash []byte) *Block {
