@@ -6,7 +6,7 @@ import (
 	"crypto/sha256"
 	"time"
 	"fmt"
-	"ZmeyCoin/transaction"
+	"ZmeyCoin/Transaction"
 	"encoding/gob"
 	"log"
 	"ZmeyCoin/MerkleTree"
@@ -15,7 +15,7 @@ import (
 
 type Block struct {
 	Timestamp int64
-	Transactions []*transaction.Transaction
+	Transactions []*Transaction.Transaction
 	PrevBlockHash []byte
 	Hash *[]byte
 	Nonce int
@@ -35,12 +35,12 @@ func (block *Block) ComputeTransactionsHash() []byte {
 		transactionHashes = append(transactionHashes, tx.ToBytes())
 	}
 
-	merkleTree := MerkleTree.NewMerkleTree(&transactionHashes)
+	merkleTree := MerkleTree.NewMerkleTree(transactionHashes)
 
-	return *merkleTree.Root.Data
+	return merkleTree.Root.Data
 }
 
-func NewBlock(transactions []*transaction.Transaction, prevBlockHash []byte) *Block {
+func NewBlock(transactions []*Transaction.Transaction, prevBlockHash []byte) *Block {
 	newBlock := &Block{Timestamp: time.Now().Unix(), Transactions: transactions, PrevBlockHash: prevBlockHash, Hash: nil,Nonce: 0}
 	proofOfWork := ProofOfWork{BlockTip: newBlock}
 	newBlock.Nonce, newBlock.Hash = proofOfWork.CalculateProof()
