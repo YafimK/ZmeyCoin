@@ -15,45 +15,45 @@ type Blockchain struct {
 	//blocks []*Block.Block
 	//transactions []*transaction.Transaction //Transaction pending to be "Block'ed"
 	//blocksCount int
-	BlockTip []byte
-	blockDb  *badger.DB
-	chainstateDb  *badger.DB
+	BlockTip     []byte
+	BlockDb      *badger.DB
+	ChainstateDb *badger.DB
 
 }
 
 func (blockchain *Blockchain) AddBlock(transactions []*Transaction.Transaction) *Block.Block{
 	var lastHash []byte
 
-	err := blockchain.blockDb.View(func(dbTransaction *badger.Txn) error {
+	err := blockchain.BlockDb.View(func(dbTransaction *badger.Txn) error {
 		item ,err := dbTransaction.Get([]byte("l"))
 		if err != nil {
-			return errors.New(fmt.Sprintf("Error finding the Block tip in the blockDb: %v \n", err))
+			return errors.New(fmt.Sprintf("Error finding the Block tip in the BlockDb: %v \n", err))
 		}
 		lastHash, err = item.Value()
 		if err != nil {
-			return errors.New(fmt.Sprintf("Error restoring the Block tip from blockDb: %v \n", err))
+			return errors.New(fmt.Sprintf("Error restoring the Block tip from BlockDb: %v \n", err))
 		}
 		return nil
 	})
 	if err != nil {
-		log.Fatalf("Errors during getting the Block tip from the blockDb: %v \n", err)
+		log.Fatalf("Errors during getting the Block tip from the BlockDb: %v \n", err)
 	}
 
 	newBlock := Block.NewBlock(transactions, lastHash)
 
-	err = blockchain.blockDb.Update(func(dbTransaction *badger.Txn) error {
+	err = blockchain.BlockDb.Update(func(dbTransaction *badger.Txn) error {
 		err := dbTransaction.Set(*newBlock.Hash, newBlock.Serialize())
 		if err != nil {
-			return errors.New(fmt.Sprintf("We had some issues inserting hash of genesis Block into the blockDb: %v \n", err))
+			return errors.New(fmt.Sprintf("We had some issues inserting hash of genesis Block into the BlockDb: %v \n", err))
 		}
 		err = dbTransaction.Set([]byte("l"), *newBlock.Hash)
 		if err != nil {
-			return errors.New(fmt.Sprintf("We had some issues inserting hash of genesis Block into the blockDb: %v \n", err))
+			return errors.New(fmt.Sprintf("We had some issues inserting hash of genesis Block into the BlockDb: %v \n", err))
 		}
 		return nil
 	})
 	if err != nil {
-		log.Fatalf("Errors during updating the Block tip in the blockDb: %v \n", err)
+		log.Fatalf("Errors during updating the Block tip in the BlockDb: %v \n", err)
 	}
 	blockchain.BlockTip = *newBlock.Hash
 	return newBlock
@@ -68,7 +68,7 @@ func (blockchain *Blockchain) MineBlock(transactions []*Transaction.Transaction)
 		}
 	}
 
-	err := blockchain.blockDb.View(func(txn *badger.Txn) error {
+	err := blockchain.BlockDb.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte("l"))
 		if err != nil {
 			return err
@@ -85,7 +85,7 @@ func (blockchain *Blockchain) MineBlock(transactions []*Transaction.Transaction)
 
 	newBlock := Block.NewBlock(transactions, lastHash)
 
-	err = blockchain.blockDb.Update(func(txn *badger.Txn) error {
+	err = blockchain.BlockDb.Update(func(txn *badger.Txn) error {
 		err := txn.Set(*newBlock.Hash, newBlock.Serialize())
 		if err != nil {
 			log.Panic(err)
@@ -109,7 +109,7 @@ func (blockchain *Blockchain) MineBlock(transactions []*Transaction.Transaction)
 
 
 //we need to init the blockchain with genesis Block
-func New() *Blockchain {
+func NewBlockChain() *Blockchain {
 	blockDb, err := initBlockDb()
 	chainstateDb, err := initChainstateDb()
 	//TODO:  return the defer of closing the db back in game
@@ -122,28 +122,28 @@ func New() *Blockchain {
 			genesis := NewGenesisBlock(Transaction.NewCoinbaseTransaction())
 			err = tx.Set(*genesis.Hash, genesis.Serialize())
 			if err != nil {
-				return errors.New(fmt.Sprintf("We had some issues inserting hash of genesis Block into the blockDb: %v \n", err))
+				return errors.New(fmt.Sprintf("We had some issues inserting hash of genesis Block into the BlockDb: %v \n", err))
 			}
 			err = tx.Set([]byte("l"), *genesis.Hash)
 			if err != nil {
-				return errors.New(fmt.Sprintf("We had some issues inserting hash of genesis Block into the blockDb: %v \n", err))
+				return errors.New(fmt.Sprintf("We had some issues inserting hash of genesis Block into the BlockDb: %v \n", err))
 			}
 			tip = *genesis.Hash
 		} else if err != nil {
-			return errors.New(fmt.Sprintf("We had some issues finding the Block tip in the blockDb: %v \n", err))
+			return errors.New(fmt.Sprintf("We had some issues finding the Block tip in the BlockDb: %v \n", err))
 		} else {
 			tip, err = item.Value()
 			if err != nil {
-				return errors.New(fmt.Sprintf("We had some issues restoring the Block tip from blockDb: %v \n", err))
+				return errors.New(fmt.Sprintf("We had some issues restoring the Block tip from BlockDb: %v \n", err))
 			}
 		}
 
 		return nil
 	})
 	if err != nil {
-		log.Fatalf("We had some issues finding the Block tip in the blockDb: %v \n", err)
+		log.Fatalf("We had some issues finding the Block tip in the BlockDb: %v \n", err)
 	}
-	return &Blockchain{BlockTip: tip, blockDb: blockDb, chainstateDb: chainstateDb}
+	return &Blockchain{BlockTip: tip, BlockDb: blockDb, ChainstateDb: chainstateDb}
 }
 
 func initBlockDb() (*badger.DB, error) {

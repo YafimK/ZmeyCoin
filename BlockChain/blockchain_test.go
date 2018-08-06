@@ -1,11 +1,11 @@
-package blockchain
+package BlockChain
 
 import (
 	"testing"
 	)
 
 func TestBlockchain_AddBlock(test *testing.T) {
-	//blockchain := New()
+	//blockchain := NewBlockChain()
 	//blockchain.AddBlock("first Block")
 	//blockchain.AddBlock("second Block")
 	//blockchain.AddBlock("third Block")

@@ -1,24 +1,45 @@
-package blockchain
+package BlockChain
 
 import (
 	"ZmeyCoin/Block"
-	)
+		"github.com/dgraph-io/badger"
+	"log"
+)
 
 type BlockchainIterator struct {
-	blockCursor *Block.Block
+	cursorBlockHash *[]byte
+	db              *badger.DB
 
 }
 
 func NewBlockchainIterator(blockchain *Blockchain) *BlockchainIterator {
 
-	return &BlockchainIterator{blockchain.blocks[blockchain.blocksCount - 1]}
+	return &BlockchainIterator{&blockchain.BlockTip, blockchain.BlockDb}
 }
 // Next returns next Block starting from the tip
 func (blockchainIterator *BlockchainIterator) Next() *Block.Block {
-	if blockchainIterator.blockCursor.PrevBlockHash == nil || len (blockchainIterator.blockCursor.PrevBlockHash) == 0{
+	var block *Block.Block
+
+	err := blockchainIterator.db.View(func(Txn *badger.Txn) error {
+		item, err := Txn.Get(*blockchainIterator.cursorBlockHash)
+		if err != nil {
+			return err
+		}
+		var encodedBlock []byte
+		encodedBlock, err = item.Value()
+		if err != nil {
+			return err
+		}
+		block = Block.DeserializeBlock(encodedBlock)
+
 		return nil
+	})
+
+	if err != nil {
+		log.Panic(err)
 	}
-	nextBlockHash := blockchainIterator.blockCursor.PrevBlockHash
-	deserializeBlock := Block.DeserializeBlock(nextBlockHash)
-	return deserializeBlock
+
+	blockchainIterator.cursorBlockHash = &block.PrevBlockHash
+
+	return block
 }
