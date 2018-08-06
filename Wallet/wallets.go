@@ -1,4 +1,4 @@
-package wallet
+package Wallet
 
 import (
 	"bytes"
@@ -7,19 +7,15 @@ import (
 	"log"
 	"io/ioutil"
 	"os"
-)
+	)
 
-//default wallet file
+//default Wallet file
 const walletFile = "wallets.dat"
+//TODO: change this to use db :)
 
 type Wallets struct {
 	Wallets map[string]*Wallet
 }
-
-//TODO: save to file
-//TODO: load from file
-
-
 
 func (wallets *Wallets) SaveToDisk() {
 	var content bytes.Buffer
@@ -54,13 +50,24 @@ func (wallets *Wallets) LoadFromDisk() error{
 	return nil
 }
 
-func (wallets *Wallets) GetWalletByAddress(address string) (*Wallet, error){
-	return nil, nil
+func (wallets *Wallets) GetWalletByAddress(address string) *Wallet{
+	return wallets.Wallets[address]
 }
 
+func (wallets *Wallets) GetAddresses() []string {
+	var addresses []string
 
-func (wallets *Wallets) GetNewWallet(address string) *Wallet{
-	return nil
+	for address := range wallets.Wallets {
+		addresses = append(addresses, address)
+	}
+
+	return addresses
+}
+
+func (wallets *Wallets) GetNewWallet() string{
+	wallet := NewWallet()
+	wallets.Wallets[wallet.GetWalletAddressString()] = wallet
+	return wallet.GetWalletAddressString()
 }
 
 func New() *Wallets{

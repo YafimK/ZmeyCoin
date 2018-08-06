@@ -1,4 +1,4 @@
-package wallet
+package Wallet
 
 import (
 	"crypto/ecdsa"
@@ -10,12 +10,12 @@ import (
 	"ZmeyCoin/util"
 )
 
-//basic wallet versions
+//basic Wallet versions
 const defaultWalletVersion = byte(0x01)
 
 
 
-//Default wallet address checksum length
+//Default Wallet address checksum length
 const addressChecksumLen = 4
 
 type Wallet struct {
@@ -35,14 +35,14 @@ func newKeyPair() (ecdsa.PrivateKey, []byte) {
 	curve := elliptic.P256()
 	privateKey, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
-		log.Fatalf("failed generating privateKey key for the wallet: %v\n", err)
+		log.Fatalf("failed generating privateKey key for the Wallet: %v\n", err)
 	}
 	publicKey := append(privateKey.PublicKey.X.Bytes(), privateKey.PublicKey.Y.Bytes()...)
 
 	return *privateKey, publicKey
 }
 
-//Creates a new public wallet address
+//Creates a new public Wallet address
 func (w *Wallet) GetNewWalletAddress() []byte {
 	pubKeyHash := HashPubKey(w.PublicKey)
 
@@ -55,6 +55,10 @@ func (w *Wallet) GetNewWalletAddress() []byte {
 		log.Fatalf("Error base58Encoder the new address: %v\n", err)
 	}
 	return address
+}
+
+func (w *Wallet) GetWalletAddressString() string {
+	return string(w.GetNewWalletAddress())
 }
 
 func HashPubKey(pubKey []byte) []byte {
