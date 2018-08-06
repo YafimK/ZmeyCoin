@@ -24,7 +24,7 @@ func NewProofOfWork(block *Block) *ProofOfWork{
 	}
 
 
-func (proof *ProofOfWork) CalculateProof() (int, []byte){
+func (proof *ProofOfWork) CalculateProof() (int, *[]byte){
 	var hashInt big.Int
 	var hash [32]byte
 	nonce := 0
@@ -40,7 +40,7 @@ func (proof *ProofOfWork) CalculateProof() (int, []byte){
 		}
 	}
 
-	return nonce, hash[:]
+	return nonce, &hash[:]
 }
 
 //Concat all the needed that data for hashing

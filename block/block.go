@@ -16,7 +16,7 @@ type Block struct {
 	Timestamp int64
 	Transactions []*transaction.Transaction
 	PrevBlockHash []byte
-	Hash []byte
+	Hash *[]byte
 	Nonce int
 }
 
@@ -24,7 +24,7 @@ func (block *Block) ComputeHash() {
 	timestamp := []byte(strconv.FormatInt(block.Timestamp, 10))
 	headers := bytes.Join([][]byte{block.PrevBlockHash, block.ComputeTransactionsHash(), timestamp}, []byte{})
 	hash := sha256.Sum256(headers)
-	block.Hash = hash[:]
+	block.Hash = &hash[:]
 }
 
 func (block *Block) ComputeTransactionsHash() []byte {
@@ -41,8 +41,9 @@ func (block *Block) ComputeTransactionsHash() []byte {
 }
 
 func New(transactions []*transaction.Transaction, prevBlockHash []byte) *Block {
-	newBlock := &Block{Timestamp: time.Now().Unix(), Transactions: transactions, PrevBlockHash: prevBlockHash, Hash: []byte{}}
-	newBlock.ComputeHash()
+	newBlock := &Block{Timestamp: time.Now().Unix(), Transactions: transactions, PrevBlockHash: prevBlockHash}
+	pow :=ProofOfWork{BlockTip: newBlock}
+	newBlock.Nonce, newBlock.Hash = pow.CalculateProof()
 	return newBlock
 }
 
@@ -78,3 +79,4 @@ func (block *Block) Serialize() []byte {
 	}
 	return result.Bytes()
 }
+
