@@ -1,4 +1,4 @@
-package block
+package Block
 
 import (
 	"testing"
@@ -6,12 +6,12 @@ import (
 )
 
 func TestBlockCreation(t *testing.T){
-	blockData := "test block data"
+	blockData := "test Block data"
 	result := New(blockData, []byte{})
 	if result == nil {
 		t.Errorf("Generated nil block1")
 	}
 	if !bytes.Equal(result.Data, []byte(blockData)) {
-		t.Errorf("The block data doesn't match the wanted data")
+		t.Errorf("The Block data doesn't match the wanted data")
 	}
 }

@@ -1,7 +1,7 @@
 package blockchain
 
 import (
-	"ZmeyCoin/block"
+	"ZmeyCoin/Block"
 	"fmt"
 	"ZmeyCoin/transaction"
 		"errors"
@@ -9,42 +9,84 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"log"
+	"github.com/dgraph-io/badger"
 )
+const dbFile = "blockchain.dat"
 
 type Blockchain struct {
-	blocks []*block.Block
-	transactions []*transaction.Transaction //Transaction pending to be "block'ed"
-	blocksCount int
+	//blocks []*Block.Block
+	//transactions []*transaction.Transaction //Transaction pending to be "Block'ed"
+	//blocksCount int
+	BlockTip *[]byte
+	db *badger.DB
+
 }
 
 func (blockchain *Blockchain) AddBlock(transactions []*transaction.Transaction) {
 	prevBlock := blockchain.blocks[blockchain.blocksCount - 1]
-	newBlock := block.New(transactions, prevBlock.Hash)
+	newBlock := Block.New(transactions, prevBlock.Hash)
 	blockchain.blocks = append(blockchain.blocks, newBlock)
 	blockchain.blocksCount++
 }
 
 func (blockchain *Blockchain) MineBlock(transactions []*transaction.Transaction) {
-	//TODO: gather all possible transactions and create a new block
-
+	//TODO: gather all possible transactions and create a new Block
 	blockchain.AddBlock(transactions)
 }
 
-//we need to init the blockchain with genesis block
+//we need to init the blockchain with genesis Block
 func New() *Blockchain {
-	newBlockchain := Blockchain{}
-	newBlockchain.blocks = append(newBlockchain.blocks,
-		block.New([]*transaction.Transaction{transaction.NewCoinbaseTransaction()}, []byte{}))
-	newBlockchain.blocksCount++
-	return &newBlockchain
+	opts := badger.DefaultOptions
+	opts.Dir = "/tmp/zmeyCoin"
+	opts.ValueDir = "/tmp/zmeyCoin"
+	var tip []byte
+	db, err := badger.Open(opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	err = db.Update(func(tx *badger.Txn) error {
+		item, err := tx.Get([]byte("l"))
+		if  err == badger.ErrKeyNotFound {
+			genesis := NewGenesisBlock()
+			err = tx.Set(*genesis.Hash, genesis.Serialize())
+			if err != nil {
+				return errors.New(fmt.Sprintf("We had some issues inserting hash of genesis Block into the db: %v \n", err))
+			}
+			err = tx.Set([]byte("l"), *genesis.Hash)
+			if err != nil {
+				return errors.New(fmt.Sprintf("We had some issues inserting hash of genesis Block into the db: %v \n", err))
+			}
+			tip = *genesis.Hash
+		} else if err != nil {
+			return errors.New(fmt.Sprintf("We had some issues finding the Block tip in the db: %v \n", err))
+		} else {
+			tip, err = item.Value()
+			if err != nil {
+				return errors.New(fmt.Sprintf("We had some issues restoring the Block tip from db: %v \n", err))
+			}
+			//if err != nil {
+			//	log.Println("We had some issues restoring the Block tip from db", err)
+			//}
+		}
+
+		return err
+	})
+	log.Fatalf("We had some issues finding the Block tip in the db: %v \n", err)
+
+	return &Blockchain{&tip, db}
+}
+func NewGenesisBlock() *Block.Block {
+
 }
 
 func (blockchain *Blockchain) PrintBlockChain() {
 	fmt.Println("*** Blockchain ***")
-	for index, curBlock := range blockchain.blocks {
-		fmt.Printf("%v block\n",index)
-		fmt.Println(curBlock)
-	}
+	//for index, curBlock := range blockchain.blocks {
+	//	fmt.Printf("%v Block\n",index)
+	//	fmt.Println(curBlock)
+	//}
 }
 
 func (blockchain *Blockchain) AddTransaction() {

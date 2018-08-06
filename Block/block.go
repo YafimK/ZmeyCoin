@@ -1,4 +1,4 @@
-package block
+package Block
 
 import (
 	"strconv"
@@ -42,7 +42,7 @@ func (block *Block) ComputeTransactionsHash() []byte {
 
 func New(transactions []*transaction.Transaction, prevBlockHash []byte) *Block {
 	newBlock := &Block{Timestamp: time.Now().Unix(), Transactions: transactions, PrevBlockHash: prevBlockHash}
-	pow :=ProofOfWork{BlockTip: newBlock}
+	pow := ProofOfWork{BlockTip: newBlock}
 	newBlock.Nonce, newBlock.Hash = pow.CalculateProof()
 	return newBlock
 }
@@ -57,7 +57,7 @@ func (block *Block) String() string {
 	return fmt.Sprintf("%v", buffer.String())
 }
 
-// DeserializeBlock deserialize a block
+// DeserializeBlock deserialize a Block
 func DeserializeBlock(serializedBlock []byte) *Block {
 	var block Block
 
