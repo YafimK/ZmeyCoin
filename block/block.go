@@ -10,13 +10,14 @@ import (
 	"encoding/gob"
 	"log"
 	"ZmeyCoin/MerkleTree"
-)
+	)
 
 type Block struct {
 	Timestamp int64
 	Transactions []*transaction.Transaction
 	PrevBlockHash []byte
 	Hash []byte
+	Nonce int
 }
 
 func (block *Block) ComputeHash() {

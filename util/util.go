@@ -7,6 +7,7 @@ import (
 	"log"
 	"bytes"
 	"encoding/gob"
+	"encoding/binary"
 )
 
 func EncodeInBase58(targetPayload []byte) ([]byte, error){
@@ -36,13 +37,24 @@ func HashPubKey(pubKey []byte) []byte {
 	return hashedPublicKey
 }
 
+// IntToHex converts an int64 to a byte array
+func IntToHex(num int64) []byte {
+	buff := new(bytes.Buffer)
+	err := binary.Write(buff, binary.BigEndian, num)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return buff.Bytes()
+}
 
 func SerializeObject(targetPayload interface{}) []byte{
 	var serializedObjectBuffer bytes.Buffer
 	enc := gob.NewEncoder(&serializedObjectBuffer)
 	err := enc.Encode(targetPayload)
 	if err != nil {
-		log.Panic(err)
+		log.Println(err)
+		return nil
 	}
 
 	return serializedObjectBuffer.Bytes()
