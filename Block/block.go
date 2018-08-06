@@ -10,7 +10,8 @@ import (
 	"encoding/gob"
 	"log"
 	"ZmeyCoin/MerkleTree"
-	)
+	"ZmeyCoin/util"
+)
 
 type Block struct {
 	Timestamp int64
@@ -29,7 +30,6 @@ func (block *Block) ComputeHash() {
 
 func (block *Block) ComputeTransactionsHash() []byte {
 	var transactionHashes [][]byte
-	//var transactionHash [32]byte
 
 	for _, tx := range block.Transactions {
 		transactionHashes = append(transactionHashes, tx.ToBytes())
@@ -40,10 +40,10 @@ func (block *Block) ComputeTransactionsHash() []byte {
 	return *merkleTree.Root.Data
 }
 
-func New(transactions []*transaction.Transaction, prevBlockHash []byte) *Block {
-	newBlock := &Block{Timestamp: time.Now().Unix(), Transactions: transactions, PrevBlockHash: prevBlockHash}
-	pow := ProofOfWork{BlockTip: newBlock}
-	newBlock.Nonce, newBlock.Hash = pow.CalculateProof()
+func NewBlock(transactions []*transaction.Transaction, prevBlockHash []byte) *Block {
+	newBlock := &Block{Timestamp: time.Now().Unix(), Transactions: transactions, PrevBlockHash: prevBlockHash, Hash: nil,Nonce: 0}
+	proofOfWork := ProofOfWork{BlockTip: newBlock}
+	newBlock.Nonce, newBlock.Hash = proofOfWork.CalculateProof()
 	return newBlock
 }
 
@@ -71,12 +71,6 @@ func DeserializeBlock(serializedBlock []byte) *Block {
 }
 
 func (block *Block) Serialize() []byte {
-	var result bytes.Buffer
-	encoder := gob.NewEncoder(&result)
-	err := encoder.Encode(block)
-	if err != nil {
-		log.Panic(err)
-	}
-	return result.Bytes()
+	return util.SerializeObject(block)
 }
 

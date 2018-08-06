@@ -1,7 +1,7 @@
 package MerkleTree
 
 import (
-		"crypto/sha256"
+		sha256 "crypto/sha256"
 	"encoding/gob"
 	"bytes"
 	"log"
@@ -21,7 +21,8 @@ type MerkleNode struct {
 func (merkleNode *MerkleNode) hashNode(data *[]byte) {
 	if merkleNode.LeftLeaf, merkleNode.RightLeaf == nil {
 		//The leaf holds just the double hash of the transaction
-		*merkleNode.Data = sha256.Sum256(*data)[:]
+		tempHashed := sha256.Sum256(*data)[:]
+		merkleNode.Data = &tempHashed
 	} else {
 		var temp []byte
 		//If only one side is empty then the other transaction is copied
@@ -33,7 +34,8 @@ func (merkleNode *MerkleNode) hashNode(data *[]byte) {
 		} else {
 			temp = append(util.SerializeObject(merkleNode.LeftLeaf), util.SerializeObject(merkleNode.RightLeaf)...)
 		}
-		*merkleNode.Data = sha256.Sum256(temp)[:]
+		tempHashed := sha256.Sum256(temp)[:]
+		merkleNode.Data = &tempHashed
 	}
 }
 
@@ -59,7 +61,7 @@ func NewMerkleTree(transactions *[][]byte) *MerkleTree{
 	return &MerkleTree{createTree(transactions)}
 }
 
-// DeserializeBlock deserialize a block
+// DeserializeBlock deserialize a Block
 func DeserializeMerkleNode(serializedMerkleNode []byte) *MerkleNode {
 	var merkleNode MerkleNode
 
