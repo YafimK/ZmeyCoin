@@ -1,12 +1,11 @@
 package MerkleTree
 
 import (
-		sha256 "crypto/sha256"
+		"crypto/sha256"
 	"encoding/gob"
 	"bytes"
 	"log"
-	"ZmeyCoin/util"
-	)
+		)
 
 type MerkleTree struct {
 	Root *MerkleNode
@@ -15,49 +14,51 @@ type MerkleTree struct {
 type MerkleNode struct {
 	LeftLeaf  *MerkleNode
 	RightLeaf *MerkleNode
-	Data      *[]byte
+	Data      []byte
 }
 
 func (merkleNode *MerkleNode) hashNode(data *[]byte) {
-	if merkleNode.LeftLeaf, merkleNode.RightLeaf == nil {
-		//The leaf holds just the double hash of the transaction
-		tempHashed := sha256.Sum256(*data)[:]
-		merkleNode.Data = &tempHashed
+	if merkleNode.LeftLeaf == nil  && merkleNode.RightLeaf == nil {
+		//The leaf holds just the double hash of the Transaction
+		tempHashed := sha256.Sum256(*data)
+		merkleNode.Data = tempHashed[:]
 	} else {
 		var temp []byte
-		//If only one side is empty then the other transaction is copied
+		//If only one side is empty then the other Transaction is copied
 		if merkleNode.LeftLeaf == nil{
-			temp = append(util.SerializeObject(merkleNode.RightLeaf), util.SerializeObject(merkleNode.RightLeaf)...)
+			temp = append(merkleNode.RightLeaf.Data, merkleNode.RightLeaf.Data...)
 		}
 		if merkleNode.RightLeaf == nil{
-			temp = append(util.SerializeObject(merkleNode.LeftLeaf), util.SerializeObject(merkleNode.LeftLeaf)...)
+			temp = append(merkleNode.LeftLeaf.Data, merkleNode.LeftLeaf.Data...)
 		} else {
-			temp = append(util.SerializeObject(merkleNode.LeftLeaf), util.SerializeObject(merkleNode.RightLeaf)...)
+			temp = append(merkleNode.LeftLeaf.Data, merkleNode.RightLeaf.Data...)
 		}
-		tempHashed := sha256.Sum256(temp)[:]
-		merkleNode.Data = &tempHashed
+		tempHashed := sha256.Sum256(temp)
+		merkleNode.Data = tempHashed[:]
 	}
 }
 
-func NewMerkleNode(left, right *MerkleNode, data *[]byte) *MerkleNode{
+func NewMerkleNode(left, right *MerkleNode, data []byte) *MerkleNode{
 	merkleNode := MerkleNode{LeftLeaf: left, RightLeaf: right}
-	merkleNode.hashNode(data)
+	merkleNode.hashNode(&data)
 	return &merkleNode
 }
 
-func createTree (transactions *[][]byte) *MerkleNode{
-	if len(*transactions) == 1 {
-		return NewMerkleNode(nil, nil, &(*transactions)[0])
-	} else if len(*transactions) == 0 {
-		return nil
+func createTree (transactions [][]byte) *MerkleNode{
+	if len(transactions) == 1 {
+		return NewMerkleNode(nil, nil, transactions[0])
 	}
-	length := len(*transactions)/2
-	left := createTree(&(*transactions)[:length])
-	right := createTree(&(*transactions)[length:])
-	return &MerkleNode{LeftLeaf:left,
-	RightLeaf: right, Data:nil}
+	length := len(transactions)/2
+
+	left := createTree(transactions[:length])
+	right := createTree(transactions[length:])
+	return NewMerkleNode(left, right, nil)
 }
-func NewMerkleTree(transactions *[][]byte) *MerkleTree{
+func NewMerkleTree(transactions [][]byte) *MerkleTree{
+	length := len(transactions)
+	if length %2 != 0 {
+		transactions = append(transactions, transactions[length-1]) //In case the division isn't even, we'd like the right branch be smaller so we duplicate it.
+	}
 	return &MerkleTree{createTree(transactions)}
 }
 
