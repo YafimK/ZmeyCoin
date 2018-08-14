@@ -7,7 +7,8 @@ import (
 	"log"
 	"io/ioutil"
 	"os"
-	)
+	"errors"
+)
 
 //default Wallet file
 const walletFile = "wallets.dat"
@@ -70,13 +71,12 @@ func (wallets *Wallets) GetNewWallet() string{
 	return wallet.GetWalletAddressString()
 }
 
-func New() *Wallets{
+func NewWallets() (*Wallets, error){
 	wallets := &Wallets{make(map[string]*Wallet)}
 	err := wallets.LoadFromDisk()
 	if err != nil{
-		log.Println("wallets file not found, will be created in the end of the next session or on manual save command")
-	}
-	//TODO: check if wallets file exist - then we should load it from disk else create one
-	return wallets
+		return nil, errors.New("wallets file not found, will be created in the end of the next session or on manual save command: " + err.Error())
 
+	}
+	return wallets, nil
 	}
