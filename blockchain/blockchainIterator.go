@@ -14,7 +14,7 @@ type BlockchainIterator struct {
 
 func NewBlockchainIterator(blockchain *Blockchain) *BlockchainIterator {
 
-	return &BlockchainIterator{&blockchain.BlockTip, blockchain.BlockDb}
+	return &BlockchainIterator{&blockchain.BlockTip, blockchain.blockDb}
 }
 // Next returns next Block starting from the tip
 func (blockchainIterator *BlockchainIterator) Next() *Block.Block {
