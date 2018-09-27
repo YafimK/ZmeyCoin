@@ -1,12 +1,12 @@
-package transaction
+package Transaction
 
 import (
 	"fmt"
-	"ZmeyCoin/util"
+	"ZmeyCoin/Util"
 	"bytes"
 )
 
-type TransactionInput struct {
+type TxInput struct {
 	PrevTransactionHash []byte
 	PrevTxOutIndex      int
 	//txInScript          []byte
@@ -15,7 +15,7 @@ type TransactionInput struct {
 	Signature           []byte
 }
 
-func (txInput *TransactionInput) String() string {
+func (txInput *TxInput) String() string {
 	//return fmt.Sprintf("Input: \n " +
 	//	"PrevTransactionHash: %v \n" +
 	//	"PrevTxOutIndex: %v \n " +
@@ -28,9 +28,14 @@ func (txInput *TransactionInput) String() string {
 		"Signature: %v\n", txInput.PrevTransactionHash, txInput.PrevTxOutIndex, txInput.SenderPublicKeyHash, txInput.Signature)
 }
 
-func (txInput *TransactionInput) UsesKey(pubKeyHash []byte) bool {
-	lockingHash := util.HashPubKey(txInput.SenderPublicKeyHash)
+func (txInput *TxInput) UsesKey(pubKeyHash []byte) bool {
+	lockingHash := Util.HashPubKey(txInput.SenderPublicKeyHash)
 	return bytes.Compare(lockingHash, pubKeyHash) == 0
 }
 
-
+func (txInput *TxInput) GetPrevTransactionHash() []byte {
+	return txInput.PrevTransactionHash
+}
+func (txInput *TxInput) GetPrevTxOutIndex() int {
+	return txInput.PrevTxOutIndex
+}

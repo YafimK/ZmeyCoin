@@ -1,21 +1,21 @@
-package Transaction
+package Chainstate
 
 import (
-	"ZmeyCoin/BlockChain"
+	"ZmeyCoin/BlockChain/Interface"
+	"ZmeyCoin/Transaction"
+	Interface2 "ZmeyCoin/Transaction/Interface"
 	"encoding/hex"
-	"log"
 	"github.com/dgraph-io/badger"
-		"ZmeyCoin/Block"
-	)
+	"log"
+)
 
-type UnspentTransactionIndex struct {
-	Blockchain *BlockChain.Blockchain
-
+type ZmeyCoinChainstate struct {
+	Blockchain Interface.Blockchain
 }
 
-func (u *UnspentTransactionIndex) FindUnspentOutputsPerPubKeyHash(pubKeyHash []byte) []TransactionOutput {
-	var UnspentOutputs []TransactionOutput
-	db := u.Blockchain.ChainstateDb
+func (u *ZmeyCoinChainstate) FindUnspentOutputsPerPubKeyHash(pubKeyHash []byte) []Interface2.TransactionOutput {
+	var UnspentOutputs []Interface2.TransactionOutput
+	db := u.Blockchain.GetChainStateDb()
 	err := db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
@@ -27,8 +27,8 @@ func (u *UnspentTransactionIndex) FindUnspentOutputsPerPubKeyHash(pubKeyHash []b
 			if err != nil {
 				return err
 			}
-			outs := DeserializeOutputs(v)
-			for _, out := range outs.Outputs {
+			outs := Interface2.DeserializeOutputs(v)
+			for _, out := range outs.GetOutputs() {
 				if out.IsLockedWithKey(pubKeyHash) {
 					UnspentOutputs = append(UnspentOutputs, out)
 				}
@@ -42,9 +42,8 @@ func (u *UnspentTransactionIndex) FindUnspentOutputsPerPubKeyHash(pubKeyHash []b
 	return UnspentOutputs
 }
 
-
-func (u *UnspentTransactionIndex) CountTransactions() int {
-	db := u.Blockchain.ChainstateDb
+func (u *ZmeyCoinChainstate) CountTransactions() int {
+	db := u.Blockchain.GetChainStateDb()
 	counter := 0
 
 	err := db.View(func(txn *badger.Txn) error {
@@ -63,8 +62,8 @@ func (u *UnspentTransactionIndex) CountTransactions() int {
 	return counter
 }
 
-func (u *UnspentTransactionIndex) Reindex() {
-	db := u.Blockchain.ChainstateDb
+func (u *ZmeyCoinChainstate) Reindex() {
+	db := u.Blockchain.GetChainStateDb()
 	UTXO := u.Blockchain.FindUnspentTransactionOutputs()
 	err := db.Update(func(txn *badger.Txn) error {
 		for txID, outs := range UTXO {
@@ -72,7 +71,7 @@ func (u *UnspentTransactionIndex) Reindex() {
 			if err != nil {
 				log.Panic(err)
 			}
-			err = txn.Set(key, outs.Serialize())
+			err = txn.Set(key, outs.SerializeOutputs())
 			if err != nil {
 				log.Panic(err)
 			}
@@ -84,10 +83,10 @@ func (u *UnspentTransactionIndex) Reindex() {
 	}
 }
 
-func (u *UnspentTransactionIndex) FindSpendableOutputs(publicKeyHash []byte, amount int) (int, map[string][]int) {
+func (u *ZmeyCoinChainstate) FindSpendableOutputs(publicKeyHash []byte, amount int) (int, map[string][]int) {
 	unspentOutputs := make(map[string][]int)
 	accumulated := 0
-	db := u.Blockchain.ChainstateDb
+	db := u.Blockchain.GetChainStateDb()
 	err := db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 100
@@ -100,10 +99,10 @@ func (u *UnspentTransactionIndex) FindSpendableOutputs(publicKeyHash []byte, amo
 				return err
 			}
 			txID := hex.EncodeToString(k)
-			outs := DeserializeOutputs(v)
-			for outIdx, out := range outs.Outputs {
+			outs := Interface2.DeserializeOutputs(v)
+			for outIdx, out := range outs.GetOutputs() {
 				if out.IsLockedWithKey(publicKeyHash) && accumulated < amount {
-					accumulated += out.value
+					accumulated += out.GetValue().(int)
 					unspentOutputs[txID] = append(unspentOutputs[txID], outIdx)
 				}
 			}
@@ -116,17 +115,17 @@ func (u *UnspentTransactionIndex) FindSpendableOutputs(publicKeyHash []byte, amo
 	return accumulated, unspentOutputs
 }
 
-func (u *UnspentTransactionIndex) Update(block *Block.Block) {
-	db := u.Blockchain.ChainstateDb
+func (u *ZmeyCoinChainstate) Update(block Interface.Block) {
+	db := u.Blockchain.GetChainStateDb()
 	err := db.Update(func(txn *badger.Txn) error {
-		for _, tx := range block.Transactions {
+		for _, tx := range block.GetTransactions() {
 			if tx.IsCoinbase() == false {
-				for _, vin := range tx.TransactionInputs {
-					updatedOuts := TransactionOutputs{}
+				for _, vin := range tx.GetTransactionInputs() {
+					updatedOuts := Transaction.TxOutputs{}
 					item, err := txn.Get(vin.PrevTransactionHash)
 					if err != nil {return err}
 					outsBytes,err := item.Value()
-					outs := DeserializeOutputs(outsBytes)
+					outs := Transaction.DeserializeOutputs(outsBytes)
 					for outIdx, out := range outs.Outputs {
 						if outIdx != vin.PrevTxOutIndex {
 							updatedOuts.Outputs = append(updatedOuts.Outputs, out)
@@ -145,7 +144,7 @@ func (u *UnspentTransactionIndex) Update(block *Block.Block) {
 					}
 				}
 			}
-			newOutputs := TransactionOutputs{}
+			newOutputs := tr.TxOutputs{}
 			for _, out := range tx.TransactionOutputs {
 				newOutputs.Outputs = append(newOutputs.Outputs, out)
 			}

@@ -6,12 +6,13 @@ import (
 		"path/filepath"
 	"fmt"
 	"github.com/pkg/errors"
-	"ZmeyCoin/Blockchain"
+	"ZmeyCoin/BlockChain"
+	"ZmeyCoin/BlockChain/Interface"
 )
 
 type Client struct {
 	Config     *viper.Viper
-	Blockchain *Blockchain.Blockchain
+	Blockchain *Interface.Blockchain
 }
 
 func (client *Client) Start() error{
@@ -33,7 +34,7 @@ func (client *Client) NewBlockChain(forceCreate bool) error {
 	if client.Blockchain != nil && !forceCreate{
 		return errors.New("There is already an active blockchain on this client")
 	} else {
-		client.Blockchain = Blockchain.NewBlockChain()
+		client.Blockchain = Blockchain.ZmeyChain.NewBlockChain()
 	}
 	return nil
 }

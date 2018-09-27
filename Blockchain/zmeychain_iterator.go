@@ -1,24 +1,24 @@
-package BlockChain
+package Blockchain
 
 import (
-	"ZmeyCoin/Block"
-		"github.com/dgraph-io/badger"
+	"ZmeyCoin/BlockChain/Interface"
+	"github.com/dgraph-io/badger"
 	"log"
 )
 
-type BlockchainIterator struct {
+type ZmeyChainIterator struct {
 	cursorBlockHash *[]byte
 	db              *badger.DB
-
 }
 
-func NewBlockchainIterator(blockchain *Blockchain) *BlockchainIterator {
-
-	return &BlockchainIterator{&blockchain.BlockTip, blockchain.blockDb}
+func NewBlockchainIterator(blockchain *ZmeyChain) *ZmeyChainIterator {
+	return &ZmeyChainIterator{&blockchain.BlockTip, blockchain.BlockDb}
 }
-// Next returns next Block starting from the tip
-func (blockchainIterator *BlockchainIterator) Next() *Block.Block {
-	var block *Block.Block
+
+
+// Next returns next ZmeyCoinBlock starting from the tip
+func (blockchainIterator *ZmeyChainIterator) Next() Interface.Block {
+	var block *ZmeyCoinBlock
 
 	err := blockchainIterator.db.View(func(Txn *badger.Txn) error {
 		item, err := Txn.Get(*blockchainIterator.cursorBlockHash)
@@ -30,7 +30,7 @@ func (blockchainIterator *BlockchainIterator) Next() *Block.Block {
 		if err != nil {
 			return err
 		}
-		block = Block.DeserializeBlock(encodedBlock)
+		block = DeserializeBlock(encodedBlock)
 
 		return nil
 	})
